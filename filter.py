@@ -42,7 +42,6 @@ def convert_to_number(word):
     return number_dict.get(word)
 
 def training(reviewer_id):
-
     global data
     if not any(data['reviewer_id'].astype(str).str.contains(reviewer_id)):
         cursor = db.cursor()
@@ -61,7 +60,9 @@ def filter(reviewer_id):
     global data
     model = load_model()
 
-    if not any(data['reviewer_id'].astype(str).str.contains(reviewer_id)):
+    values = data['reviewer_id'].unique()
+    b = int(reviewer_id) in values
+    if not b:
         return []
 
     cursor = db.cursor()
