@@ -2,15 +2,16 @@ import pandas as pd
 from surprise import Reader, Dataset, SVD
 from surprise.model_selection import cross_validate
 import mysql.connector
+import pickle
 
 db = mysql.connector.connect(
     host="localhost",
     user="root",
     password="1234",
-    database="mentors"
+    database="mentoring"
 )
 
-ratings = pd.read_csv('./extracted_data.csv')  # ratings 데이터를 미리 읽어옴
+ratings = pd.read_csv('./user5.csv')  # ratings 데이터를 미리 읽어옴
 
 data = ratings
 
@@ -26,6 +27,17 @@ def train_model():
 
 model = train_model()  # 서버 시작 시 모델 학습 수행
 
+model_file = 'trained_model.pkl'  # 저장할 모델 파일 경로
+
+def save_model(model):
+    with open(model_file, 'wb') as file:
+        pickle.dump(model, file)
+
+def load_model():
+    with open(model_file, 'rb') as file:
+        model = pickle.load(file)
+    return model
+
 def convert_to_number(word):
     number_dict = {'ONE': 1, 'TWO': 2, 'THREE': 3, 'FOUR': 4, 'FIVE': 5}
     return number_dict.get(word)
@@ -33,7 +45,7 @@ def convert_to_number(word):
 def training(reviewer_id):
     global model
     global data
-
+    save_model(model)
     if not any(data['reviewer_id'].astype(str).str.contains(reviewer_id)):
         cursor = db.cursor()
         cursor.execute("SELECT reviewer_id, mentoring_id, rating FROM reviews where reviewer_id =" + reviewer_id)
@@ -42,7 +54,10 @@ def training(reviewer_id):
         converted_reviewers = [(reviewer[0], reviewer[1], convert_to_number(reviewer[2])) for reviewer in reviewers]
         new_data_df = pd.DataFrame(converted_reviewers, columns=['reviewer_id', 'mentoring_id', 'rating'])
         data = pd.concat([data, new_data_df], axis=0)
+        data.to_csv('./user5.csv', index=False)
         model = train_model()
+    return []
+
 
 def filter(reviewer_id):
     global model
