@@ -4,6 +4,8 @@ from surprise.model_selection import cross_validate
 import mysql.connector
 import pickle
 
+model_file = 'trained_model.pkl'
+
 db = mysql.connector.connect(
     host="localhost",
     user="root",
@@ -22,12 +24,9 @@ def train_model():
     cross_validate(svd, df, measures=['RMSE', 'MAE'], cv=5, verbose=True)
     trainset = df.build_full_trainset()
     svd.fit(trainset)
+    save_model(svd)
     return svd
 
-
-model = train_model()  # 서버 시작 시 모델 학습 수행
-
-model_file = 'trained_model.pkl'  # 저장할 모델 파일 경로
 
 def save_model(model):
     with open(model_file, 'wb') as file:
@@ -43,9 +42,8 @@ def convert_to_number(word):
     return number_dict.get(word)
 
 def training(reviewer_id):
-    global model
+
     global data
-    save_model(model)
     if not any(data['reviewer_id'].astype(str).str.contains(reviewer_id)):
         cursor = db.cursor()
         cursor.execute("SELECT reviewer_id, mentoring_id, rating FROM reviews where reviewer_id =" + reviewer_id)
@@ -55,13 +53,13 @@ def training(reviewer_id):
         new_data_df = pd.DataFrame(converted_reviewers, columns=['reviewer_id', 'mentoring_id', 'rating'])
         data = pd.concat([data, new_data_df], axis=0)
         data.to_csv('./user5.csv', index=False)
-        model = train_model()
+        train_model()
     return []
 
 
 def filter(reviewer_id):
-    global model
     global data
+    model = load_model()
 
     if not any(data['reviewer_id'].astype(str).str.contains(reviewer_id)):
         return []
@@ -72,7 +70,6 @@ def filter(reviewer_id):
     cursor.execute("SELECT mentoring_id FROM mypages where mentee_id = " +reviewer_id)
     mentees = cursor.fetchall()
     cursor.close()
-
     my_array = []
     for mentoringId in mentoring_ids:
         if mentoringId in mentees:
