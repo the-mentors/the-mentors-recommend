@@ -43,16 +43,15 @@ def convert_to_number(word):
 
 def training(reviewer_id):
     global data
-    if not any(data['reviewer_id'].astype(str).str.contains(reviewer_id)):
-        cursor = db.cursor()
-        cursor.execute("SELECT reviewer_id, mentoring_id, rating FROM reviews where reviewer_id =" + reviewer_id)
-        reviewers = cursor.fetchall()
-        cursor.close()
-        converted_reviewers = [(reviewer[0], reviewer[1], convert_to_number(reviewer[2])) for reviewer in reviewers]
-        new_data_df = pd.DataFrame(converted_reviewers, columns=['reviewer_id', 'mentoring_id', 'rating'])
-        data = pd.concat([data, new_data_df], axis=0)
-        data.to_csv('./user5.csv', index=False)
-        train_model()
+    cursor = db.cursor()
+    cursor.execute("SELECT reviewer_id, mentoring_id, rating FROM reviews where reviewer_id =" + reviewer_id)
+    reviewers = cursor.fetchall()
+    cursor.close()
+    converted_reviewers = [(reviewer[0], reviewer[1], convert_to_number(reviewer[2])) for reviewer in reviewers]
+    new_data_df = pd.DataFrame(converted_reviewers, columns=['reviewer_id', 'mentoring_id', 'rating'])
+    data = pd.concat([data, new_data_df], axis=0)
+    data.to_csv('./user5.csv', index=False)
+    train_model()
     return []
 
 
@@ -61,8 +60,7 @@ def filter(reviewer_id):
     model = load_model()
 
     values = data['reviewer_id'].unique()
-    b = int(reviewer_id) in values
-    if not b:
+    if not int(reviewer_id) in values:
         return []
 
     cursor = db.cursor()
